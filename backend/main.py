@@ -3,6 +3,8 @@ import logging
 from typing import List, Optional
 from fastapi import FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 from dotenv import load_dotenv
 
@@ -15,7 +17,7 @@ logger = logging.getLogger("hostelchef")
 
 app = FastAPI(
     title="HostelChef API",
-    description="FastAPI backend powering the HostelChef AI meal assistant with Google Gemma 4",
+    description="FastAPI backend and frontend server for HostelChef AI meal assistant",
     version="2.0.0"
 )
 
@@ -30,8 +32,7 @@ origins = [
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins if origins else ["*"],
-    allow_origin_regex=r"https?://.*" if not origins else None,
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -88,6 +89,28 @@ async def generate_recipe(request: RecipeRequest):
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="Chef couldn't prepare this one right now. Please try again."
         )
+
+# Serve built frontend from frontend/dist if available (Unified Render Deployment)
+frontend_dist = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), "..", "frontend", "dist")
+)
+
+if os.path.exists(frontend_dist):
+    assets_dir = os.path.join(frontend_dist, "assets")
+    if os.path.exists(assets_dir):
+        app.mount("/assets", StaticFiles(directory=assets_dir), name="assets")
+
+    @app.get("/{full_path:path}")
+    async def serve_frontend(full_path: str):
+        # Do not intercept API routes
+        if full_path in ("health", "generate-recipe", "docs", "openapi.json"):
+            raise HTTPException(status_code=404, detail="Not Found")
+        
+        file_path = os.path.join(frontend_dist, full_path)
+        if full_path and os.path.exists(file_path) and os.path.isfile(file_path):
+            return FileResponse(file_path)
+        
+        return FileResponse(os.path.join(frontend_dist, "index.html"))
 
 if __name__ == "__main__":
     import uvicorn

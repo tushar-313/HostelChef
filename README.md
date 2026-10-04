@@ -10,7 +10,7 @@ HostelChef is a focused, practical AI meal assistant designed specifically for h
 
 ```text
 React + Vite (Tailwind CSS)
-        ↓  HTTP / REST
+        ↓  (Static assets & API on same origin)
 FastAPI Backend (Python)
         ↓  Google GenAI SDK
 Google GenAI API
@@ -18,7 +18,7 @@ Google GenAI API
 Gemma 4 26B A4B (gemma-4-26b-a4b-it)
 ```
 
-The Google API key remains strictly on the FastAPI backend and is **never** exposed to the React frontend.
+The Google API key remains strictly on the FastAPI backend and is **never** exposed to the client.
 
 ---
 
@@ -37,65 +37,59 @@ The Google API key remains strictly on the FastAPI backend and is **never** expo
 ```env
 GOOGLE_API_KEY=your_google_api_key_here
 GEMMA_MODEL=gemma-4-26b-a4b-it
-FRONTEND_URL=http://localhost:5173
 PORT=8000
 HOST=0.0.0.0
 ```
 
-### Frontend (`frontend/.env`):
-```env
-VITE_API_URL=http://localhost:8000
-```
+---
+
+## 🚀 Hosting the Entire App on Render (Frontend + Backend Unified)
+
+You can host both the frontend and backend together on **one single free Render Web Service**. FastAPI serves the built React app and the API endpoints under one unified domain with **zero CORS configuration needed**.
+
+### Step-by-Step Render Deployment:
+1. Go to your [Render Dashboard](https://dashboard.render.com/).
+2. Click **New +** → **Web Service**.
+3. Connect your GitHub repository: `https://github.com/tushar-313/HostelChef.git`.
+4. Fill in the service details:
+   - **Name**: `hostelchef`
+   - **Language / Environment**: `Python`
+   - **Branch**: `main`
+   - **Region**: Any (e.g. Oregon)
+   - **Build Command**:
+     ```bash
+     npm --prefix frontend install && npm --prefix frontend run build && pip install -r backend/requirements.txt
+     ```
+   - **Start Command**:
+     ```bash
+     uvicorn backend.main:app --host 0.0.0.0 --port $PORT
+     ```
+5. Add **Environment Variables**:
+   - `GOOGLE_API_KEY`: *(Paste your Google GenAI API key)*
+   - `GEMMA_MODEL`: `gemma-4-26b-a4b-it`
+6. Click **Deploy Web Service**!
+
+Render will build the React frontend, install Python dependencies, and launch FastAPI serving the full app at `https://<your-app-name>.onrender.com`.
 
 ---
 
-## Local Setup & Running
+## Local Development
 
-### 1. Backend Setup
+### 1. Backend:
 ```bash
-# From repository root
 python3 -m venv backend/.venv
 source backend/.venv/bin/activate
 pip install -r backend/requirements.txt
-
-# Start FastAPI server
 uvicorn backend.main:app --host 0.0.0.0 --port 8000 --reload
 ```
-- Health Check: `http://localhost:8000/health`
-- API Docs: `http://localhost:8000/docs`
 
-### 2. Frontend Setup
-In a new terminal window:
+### 2. Frontend:
 ```bash
 cd frontend
 npm install
 npm run dev
 ```
-- Web App: `http://localhost:5173`
-
----
-
-## Deployment Guide
-
-### Backend Deployment (Render)
-1. Push your repository to GitHub.
-2. In [Render Dashboard](https://dashboard.render.com/), create a new **Web Service** and connect this repository.
-3. Configure the service:
-   - **Root Directory**: Leave blank (or `.`)
-   - **Environment**: `Python`
-   - **Build Command**: `pip install -r backend/requirements.txt`
-   - **Start Command**: `uvicorn backend.main:app --host 0.0.0.0 --port $PORT`
-4. Set Environment Variables in Render:
-   - `GOOGLE_API_KEY`: Your Google GenAI API key
-   - `GEMMA_MODEL`: `gemma-4-26b-a4b-it`
-   - `FRONTEND_URL`: URL of your deployed Vercel frontend (e.g. `https://hostelchef.vercel.app`)
-
-### Frontend Deployment (Vercel)
-1. In [Vercel Dashboard](https://vercel.com/), create a new project and import this repository.
-2. Set **Root Directory** to `frontend`.
-3. Set Environment Variable:
-   - `VITE_API_URL`: Your deployed Render backend URL (e.g. `https://hostelchef-backend.onrender.com`)
-4. Deploy!
+Open [http://localhost:5173](http://localhost:5173) in your browser.
 
 ---
 
@@ -107,7 +101,7 @@ npm run dev
 - **Equipment**: `Pan / Kadai`
 - **Diet**: `Vegetarian / Eggitarian`
 
-### Gemma 4 Generated Recipe Output (JSON)
+### Gemma 4 Output
 ```json
 {
   "name": "Masala Egg Bhurji with Toast",

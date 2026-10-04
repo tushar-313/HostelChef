@@ -6,7 +6,7 @@ import RecipeCard from './components/RecipeCard';
 import LoadingState from './components/LoadingState';
 import ErrorAlert from './components/ErrorAlert';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+const API_BASE_URL = import.meta.env.VITE_API_URL || '';
 
 export default function App() {
   const [ingredients, setIngredients] = useState('');
