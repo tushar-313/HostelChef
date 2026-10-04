@@ -1,10 +1,30 @@
 import React, { useState } from 'react';
 import Header from './components/Header';
 import IngredientInput from './components/IngredientInput';
+import PreferencesInput from './components/PreferencesInput';
 
 export default function App() {
   const [ingredients, setIngredients] = useState('');
+  const [cookingTime, setCookingTime] = useState('15 minutes');
+  const [selectedEquipment, setSelectedEquipment] = useState(['Electric Kettle', 'Induction Cooktop']);
+  const [dietaryPreference, setDietaryPreference] = useState('Any / No restriction');
   const [inputError, setInputError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleCook = () => {
+    if (!ingredients.trim()) {
+      setInputError('Please enter at least 1 or 2 ingredients you have in your room!');
+      return;
+    }
+    setInputError('');
+    // Placeholder trigger for backend connection
+    console.log({
+      ingredients,
+      cookingTime,
+      selectedEquipment,
+      dietaryPreference,
+    });
+  };
 
   return (
     <div className="min-h-screen bg-[#faf9f6] flex flex-col justify-between">
@@ -19,11 +39,25 @@ export default function App() {
               </p>
             </div>
 
-            <form onSubmit={(e) => e.preventDefault()} className="space-y-6">
+            <form onSubmit={(e) => { e.preventDefault(); handleCook(); }} className="space-y-6">
               <IngredientInput
                 ingredients={ingredients}
-                setIngredients={setIngredients}
+                setIngredients={(val) => {
+                  setIngredients(val);
+                  if (inputError) setInputError('');
+                }}
                 error={inputError}
+              />
+
+              <PreferencesInput
+                cookingTime={cookingTime}
+                setCookingTime={setCookingTime}
+                selectedEquipment={selectedEquipment}
+                setSelectedEquipment={setSelectedEquipment}
+                dietaryPreference={dietaryPreference}
+                setDietaryPreference={setDietaryPreference}
+                onSubmit={handleCook}
+                isLoading={isLoading}
               />
             </form>
           </div>
