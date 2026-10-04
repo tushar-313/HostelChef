@@ -6,33 +6,41 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from dotenv import load_dotenv
 
-from .ollama_service import query_ollama, OLLAMA_BASE_URL, OLLAMA_MODEL
+from .gemma_service import generate_recipe_with_gemma, GEMMA_MODEL
 
 load_dotenv()
 
-# Setup logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("hostelchef")
 
 app = FastAPI(
     title="HostelChef API",
-    description="FastAPI backend powering the HostelChef AI meal assistant",
-    version="1.0.0"
+    description="FastAPI backend powering the HostelChef AI meal assistant with Google Gemma 4",
+    version="2.0.0"
 )
 
-# CORS configuration for frontend
+# CORS configuration
+frontend_url = os.getenv("FRONTEND_URL", "http://localhost:5173")
+origins = [
+    frontend_url,
+    "http://localhost:5173",
+    "http://localhost:3000",
+    "http://127.0.0.1:5173",
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=origins if origins else ["*"],
+    allow_origin_regex=r"https?://.*" if not origins else None,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 class RecipeRequest(BaseModel):
-    ingredients: str = Field(..., min_length=1, description="List of ingredients available")
+    ingredients: str = Field(..., min_length=1, description="List of available ingredients")
     time_limit: str = Field(default="15 minutes", description="Available cooking time limit")
-    equipment: List[str] = Field(default_factory=lambda: ["Electric Kettle"], description="Available equipment")
+    equipment: List[str] = Field(default_factory=lambda: ["Pan / Kadai"], description="Available equipment")
     dietary_preference: Optional[str] = Field(default="Any / No restriction", description="Dietary preferences")
 
 class RecipeResponse(BaseModel):
@@ -40,50 +48,45 @@ class RecipeResponse(BaseModel):
     description: str = Field(..., description="Short description")
     time: str = Field(..., description="Cooking time")
     difficulty: str = Field(..., description="Difficulty level")
-    ingredients: List[str] = Field(..., description="List of ingredients and quantities")
+    ingredients: List[str] = Field(..., description="List of ingredients with quantities")
     steps: List[str] = Field(..., description="Step-by-step instructions")
     hostel_tip: str = Field(..., description="Hostel tip or hack")
 
 @app.get("/health")
 async def health_check():
+    api_key_configured = bool(os.getenv("GOOGLE_API_KEY") or os.getenv("GEMINI_API_KEY"))
     return {
         "status": "healthy",
         "service": "HostelChef Backend",
-        "ollama_base_url": os.getenv("OLLAMA_BASE_URL", OLLAMA_BASE_URL),
-        "model": os.getenv("OLLAMA_MODEL", OLLAMA_MODEL)
+        "provider": "Google GenAI API",
+        "model": os.getenv("GEMMA_MODEL", GEMMA_MODEL),
+        "api_configured": api_key_configured
     }
 
 @app.post("/generate-recipe", response_model=RecipeResponse)
 async def generate_recipe(request: RecipeRequest):
-    logger.info(f"Received recipe generation request with ingredients: {request.ingredients[:50]}...")
+    logger.info(f"Received recipe request with ingredients: {request.ingredients[:60]}...")
     try:
-        recipe_data = await query_ollama(
+        recipe_data = generate_recipe_with_gemma(
             ingredients=request.ingredients,
             time_limit=request.time_limit,
             equipment=request.equipment,
             dietary_preference=request.dietary_preference or "Any / No restriction",
-            model=os.getenv("OLLAMA_MODEL", OLLAMA_MODEL),
-            base_url=os.getenv("OLLAMA_BASE_URL", OLLAMA_BASE_URL)
+            model=os.getenv("GEMMA_MODEL", GEMMA_MODEL)
         )
         return RecipeResponse(**recipe_data)
 
-    except ConnectionError as ce:
-        logger.error(f"Ollama connection error: {ce}")
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Couldn't reach the local AI. Make sure Ollama and Gemma 4 are running."
-        )
     except ValueError as ve:
-        logger.error(f"Model response formatting error: {ve}")
+        logger.error(f"Value/formatting error: {ve}")
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
-            detail="The AI gave an unexpected recipe format. Please try again."
+            detail="Chef couldn't prepare this one right now. Please try again."
         )
     except Exception as e:
-        logger.error(f"Unexpected error generating recipe: {e}", exc_info=True)
+        logger.error(f"Google GenAI error: {type(e).__name__}")
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="An error occurred while generating the recipe. Please try again."
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Chef couldn't prepare this one right now. Please try again."
         )
 
 if __name__ == "__main__":

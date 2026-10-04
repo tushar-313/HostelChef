@@ -51,8 +51,8 @@ export default function App() {
           // ignore parsing error
         }
 
-        if (response.status === 503 || !errorDetail) {
-          throw new Error("Couldn't reach the local AI. Make sure Ollama and Gemma 4 are running.");
+        if (!errorDetail) {
+          throw new Error("Chef couldn't prepare this one right now. Please try again.");
         }
         throw new Error(errorDetail);
       }
@@ -60,11 +60,7 @@ export default function App() {
       const data = await response.json();
       setRecipe(data);
     } catch (err) {
-      if (err.name === 'TypeError' && err.message.includes('fetch')) {
-        setErrorMessage("Couldn't reach the local AI. Make sure Ollama and Gemma 4 are running.");
-      } else {
-        setErrorMessage(err.message || "Couldn't reach the local AI. Make sure Ollama and Gemma 4 are running.");
-      }
+      setErrorMessage("Chef couldn't prepare this one right now. Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -129,7 +125,7 @@ export default function App() {
       </div>
 
       <footer className="py-6 text-center text-sm text-gray-400">
-        HostelChef &bull; Powered by Gemma 4 12B &amp; FastAPI
+        HostelChef &bull; Powered by Gemma 4 &amp; FastAPI
       </footer>
     </div>
   );

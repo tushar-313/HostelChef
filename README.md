@@ -1,136 +1,136 @@
 # HostelChef 🍳
 
-> Turn whatever's in your room into something you can eat.
+> "Turn whatever's in your room into something you can eat."
 
-HostelChef is a focused, practical AI meal assistant designed specifically for hostel and college students. Tell it what random ingredients you have, your maximum cooking time, and available equipment (electric kettle, induction cooktop, microwave, etc.), and it leverages a local Gemma 4 model via Ollama to generate a realistic, minimal-cleanup hostel recipe.
-
----
-
-## Why It Was Built
-
-Hostel cooking is defined by strict constraints:
-- Minimal utensils (often just a kettle, sandwich toaster, or single induction plate).
-- Random leftover or pantry ingredients.
-- Strict hostel rules and tight time limits.
-
-Generic recipe apps suggest 20 ingredients, ovens, or blenders that students simply don't have. HostelChef focuses entirely on student reality: fast, realistic, and low-hassle meals using what's already on hand.
+HostelChef is a focused, practical AI meal assistant designed specifically for hostel and college students. Tell it what random ingredients you have in your room, your available cooking time, and equipment (induction plate, electric kettle, pan, microwave, etc.), and it leverages **Google Gemma 4 (`gemma-4-26b-a4b-it`)** via the Google GenAI SDK to generate a realistic, minimal-cleanup hostel recipe in seconds.
 
 ---
 
 ## Architecture
 
 ```text
-React / Vite (Tailwind CSS)
+React + Vite (Tailwind CSS)
         ↓  HTTP / REST
 FastAPI Backend (Python)
-        ↓  HTTP / JSON format
-Ollama API (http://localhost:11434)
+        ↓  Google GenAI SDK
+Google GenAI API
         ↓
-Gemma 4 12B (gemma4:12b)
+Gemma 4 26B A4B (gemma-4-26b-a4b-it)
 ```
+
+The Google API key remains strictly on the FastAPI backend and is **never** exposed to the React frontend.
 
 ---
 
 ## Tech Stack
 
 - **Frontend**: React, Vite, Tailwind CSS
-- **Backend**: Python 3.9+, FastAPI, Uvicorn, HTTPX, Pydantic
-- **AI / LLM**: Ollama, Google Gemma 4 12B (`gemma4:12b`)
+- **Backend**: Python 3.9+, FastAPI, Uvicorn, Pydantic, python-dotenv
+- **AI SDK**: Google GenAI Python SDK (`google-genai`)
+- **AI Model**: Google Gemma 4 26B A4B (`gemma-4-26b-a4b-it`)
 
 ---
 
-## Quickstart Guide
+## Environment Variables
 
-### 1. Start Ollama and Pull Gemma 4 12B
-
-Make sure [Ollama](https://ollama.com/) is installed and running on your machine:
-
-```bash
-# Verify Ollama is running
-ollama --version
-
-# Pull the Gemma 4 12B model
-ollama pull gemma4:12b
-
-# Run the model
-ollama run gemma4:12b
+### Backend (`backend/.env`):
+```env
+GOOGLE_API_KEY=your_google_api_key_here
+GEMMA_MODEL=gemma-4-26b-a4b-it
+FRONTEND_URL=http://localhost:5173
+PORT=8000
+HOST=0.0.0.0
 ```
 
-> **Note**: If you want to test with another installed model (e.g. `gemma2:9b` or `mistral`), you can set `OLLAMA_MODEL=<model_name>` in `backend/.env`.
+### Frontend (`frontend/.env`):
+```env
+VITE_API_URL=http://localhost:8000
+```
 
 ---
 
-### 2. Start the FastAPI Backend
+## Local Setup & Running
 
+### 1. Backend Setup
 ```bash
-# Navigate to the project root
-cd /path/to/hostelchef
-
-# Create and activate virtual environment (if not already done)
+# From repository root
 python3 -m venv backend/.venv
 source backend/.venv/bin/activate
-
-# Install requirements
 pip install -r backend/requirements.txt
 
-# Start backend server
+# Start FastAPI server
 uvicorn backend.main:app --host 0.0.0.0 --port 8000 --reload
 ```
+- Health Check: `http://localhost:8000/health`
+- API Docs: `http://localhost:8000/docs`
 
-The backend will be live at `http://localhost:8000`. You can check the health status at:
-`http://localhost:8000/health`
+### 2. Frontend Setup
+In a new terminal window:
+```bash
+cd frontend
+npm install
+npm run dev
+```
+- Web App: `http://localhost:5173`
 
 ---
 
-### 3. Start the React Frontend
+## Deployment Guide
 
-Open a new terminal window:
+### Backend Deployment (Render)
+1. Push your repository to GitHub.
+2. In [Render Dashboard](https://dashboard.render.com/), create a new **Web Service** and connect this repository.
+3. Configure the service:
+   - **Root Directory**: Leave blank (or `.`)
+   - **Environment**: `Python`
+   - **Build Command**: `pip install -r backend/requirements.txt`
+   - **Start Command**: `uvicorn backend.main:app --host 0.0.0.0 --port $PORT`
+4. Set Environment Variables in Render:
+   - `GOOGLE_API_KEY`: Your Google GenAI API key
+   - `GEMMA_MODEL`: `gemma-4-26b-a4b-it`
+   - `FRONTEND_URL`: URL of your deployed Vercel frontend (e.g. `https://hostelchef.vercel.app`)
 
-```bash
-# Navigate to frontend
-cd /path/to/hostelchef/frontend
-
-# Install dependencies (if not already done)
-npm install
-
-# Start Vite dev server
-npm run dev
-```
-
-The frontend will be running at `http://localhost:5173`. Open it in your browser!
+### Frontend Deployment (Vercel)
+1. In [Vercel Dashboard](https://vercel.com/), create a new project and import this repository.
+2. Set **Root Directory** to `frontend`.
+3. Set Environment Variable:
+   - `VITE_API_URL`: Your deployed Render backend URL (e.g. `https://hostelchef-backend.onrender.com`)
+4. Deploy!
 
 ---
 
 ## Example Usage
 
-### Example Input
-- **Ingredients**: `1 packet Maggi, 1 slice cheese, 1 egg, butter`
-- **Time Available**: `15 minutes`
-- **Equipment**: `Electric Kettle`, `Pan / Kadai`
-- **Dietary Preference**: `Eggitarian`
+### Input
+- **Ingredients**: `eggs, bread, onion, tomato`
+- **Time**: `15 minutes`
+- **Equipment**: `Pan / Kadai`
+- **Diet**: `Vegetarian / Eggitarian`
 
-### Example Generated Output (JSON schema)
+### Gemma 4 Generated Recipe Output (JSON)
 ```json
 {
-  "name": "Hostel Cheesy Egg Maggi",
-  "description": "Rich, comforting noodles enriched with a soft poached egg and melted cheese.",
+  "name": "Masala Egg Bhurji with Toast",
+  "description": "A quick and savory scrambled egg dish with sautéed onions and tomatoes, served with toasted bread.",
   "time": "12 minutes",
   "difficulty": "Easy",
   "ingredients": [
-    "1 packet Maggi noodles & tastemaker",
-    "1 egg",
-    "1 cheese slice",
-    "1/2 tbsp butter",
-    "1.5 cups water"
+    "2 eggs",
+    "2 slices of bread",
+    "1 small onion, finely chopped",
+    "1 small tomato, finely chopped",
+    "Salt to taste",
+    "1 tsp cooking oil"
   ],
   "steps": [
-    "Boil water in your pan or kettle with a dab of butter.",
-    "Add the Maggi tastemaker spice blend and noodles.",
-    "When noodles are halfway cooked (about 2 minutes), crack the egg directly on top.",
-    "Cover with a plate for 2 minutes on low heat so the egg gently poaches.",
-    "Top with the cheese slice, let it melt into the sauce, and serve immediately in the pan."
+    "Heat oil in your pan over medium heat.",
+    "Add chopped onions and sauté until translucent.",
+    "Add chopped tomatoes and cook until soft.",
+    "Crack eggs directly into the pan, add salt, and stir continuously to scramble.",
+    "Toast bread slices in the remaining pan space.",
+    "Serve hot egg bhurji with toasted bread."
   ],
-  "hostel_tip": "Eat directly from the pan to avoid washing an extra bowl or plate!"
+  "hostel_tip": "If you don't have a toaster, press the bread flat with a spatula in the pan for instant crunch."
 }
 ```
 
