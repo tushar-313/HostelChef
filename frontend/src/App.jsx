@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import Header from './components/Header';
 import IngredientInput from './components/IngredientInput';
 import PreferencesInput from './components/PreferencesInput';
+import RecipeCard from './components/RecipeCard';
 
 export default function App() {
   const [ingredients, setIngredients] = useState('');
@@ -10,6 +11,7 @@ export default function App() {
   const [dietaryPreference, setDietaryPreference] = useState('Any / No restriction');
   const [inputError, setInputError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [recipe, setRecipe] = useState(null);
 
   const handleCook = () => {
     if (!ingredients.trim()) {
@@ -17,13 +19,10 @@ export default function App() {
       return;
     }
     setInputError('');
-    // Placeholder trigger for backend connection
-    console.log({
-      ingredients,
-      cookingTime,
-      selectedEquipment,
-      dietaryPreference,
-    });
+  };
+
+  const handleReset = () => {
+    setRecipe(null);
   };
 
   return (
@@ -31,36 +30,40 @@ export default function App() {
       <div className="container mx-auto px-4 max-w-2xl pb-16">
         <Header />
         <main className="mt-4">
-          <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-orange-100/80">
-            <div className="mb-6 border-b border-gray-100 pb-4">
-              <h2 className="text-2xl font-bold text-gray-800">What's in your kitchen?</h2>
-              <p className="text-gray-500 text-sm mt-1">
-                Tell us what you found in your drawer, fridge, or bag.
-              </p>
+          {!recipe ? (
+            <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-orange-100/80">
+              <div className="mb-6 border-b border-gray-100 pb-4">
+                <h2 className="text-2xl font-bold text-gray-800">What's in your kitchen?</h2>
+                <p className="text-gray-500 text-sm mt-1">
+                  Tell us what you found in your drawer, fridge, or bag.
+                </p>
+              </div>
+
+              <form onSubmit={(e) => { e.preventDefault(); handleCook(); }} className="space-y-6">
+                <IngredientInput
+                  ingredients={ingredients}
+                  setIngredients={(val) => {
+                    setIngredients(val);
+                    if (inputError) setInputError('');
+                  }}
+                  error={inputError}
+                />
+
+                <PreferencesInput
+                  cookingTime={cookingTime}
+                  setCookingTime={setCookingTime}
+                  selectedEquipment={selectedEquipment}
+                  setSelectedEquipment={setSelectedEquipment}
+                  dietaryPreference={dietaryPreference}
+                  setDietaryPreference={setDietaryPreference}
+                  onSubmit={handleCook}
+                  isLoading={isLoading}
+                />
+              </form>
             </div>
-
-            <form onSubmit={(e) => { e.preventDefault(); handleCook(); }} className="space-y-6">
-              <IngredientInput
-                ingredients={ingredients}
-                setIngredients={(val) => {
-                  setIngredients(val);
-                  if (inputError) setInputError('');
-                }}
-                error={inputError}
-              />
-
-              <PreferencesInput
-                cookingTime={cookingTime}
-                setCookingTime={setCookingTime}
-                selectedEquipment={selectedEquipment}
-                setSelectedEquipment={setSelectedEquipment}
-                dietaryPreference={dietaryPreference}
-                setDietaryPreference={setDietaryPreference}
-                onSubmit={handleCook}
-                isLoading={isLoading}
-              />
-            </form>
-          </div>
+          ) : (
+            <RecipeCard recipe={recipe} onReset={handleReset} />
+          )}
         </main>
       </div>
       <footer className="py-6 text-center text-sm text-gray-400">
